@@ -462,8 +462,20 @@ function resolveSlot(slot) {
 
 function slotLabel(slot) {
   if (slot.team) return TEAMS[slot.team].name;
-  if (slot.winner) return "Winner of " + slot.winner;
-  if (slot.loser) return "Loser of " + slot.loser;
+  if (slot.winner) {
+    const game = GAMES[slot.winner];
+    const top = resolveSlot(game.slots.top);
+    const bot = resolveSlot(game.slots.bot);
+    if (top && bot) return "Winner of " + TEAMS[top].name + " vs " + TEAMS[bot].name;
+    return "Winner of " + slot.winner;
+  }
+  if (slot.loser) {
+    const game = GAMES[slot.loser];
+    const top = resolveSlot(game.slots.top);
+    const bot = resolveSlot(game.slots.bot);
+    if (top && bot) return "Loser of " + TEAMS[top].name + " vs " + TEAMS[bot].name;
+    return "Loser of " + slot.loser;
+  }
   return "?";
 }
 
@@ -647,12 +659,15 @@ function teamHtml(teamKey) {
   return `<img src="${t.logo}" alt=""> <strong>${t.name}</strong> <span style="color:#6b7280;">(${t.seed})</span>`;
 }
 
-function opponentLabel(gameId) {
+function opponentLabel(gameId, fromGameId, fromOutcome) {
+  // fromGameId and fromOutcome are optional. They indicate trackedTeam is
+  // hypothetically advancing from fromGameId as the winner or loser into this game.
   const g = GAMES[gameId];
   const top = resolveSlot(g.slots.top);
   const bot = resolveSlot(g.slots.bot);
-  if (top === trackedTeam) return bot ? teamHtml(bot) : slotLabel(g.slots.bot);
-  if (bot === trackedTeam) return top ? teamHtml(top) : slotLabel(g.slots.top);
+  const isHypoTracked = (slot) => fromGameId && fromOutcome && slot[fromOutcome] === fromGameId;
+  if (top === trackedTeam || isHypoTracked(g.slots.top)) return bot ? teamHtml(bot) : slotLabel(g.slots.bot);
+  if (bot === trackedTeam || isHypoTracked(g.slots.bot)) return top ? teamHtml(top) : slotLabel(g.slots.top);
   const t = top ? TEAMS[top].name : slotLabel(g.slots.top);
   const b = bot ? TEAMS[bot].name : slotLabel(g.slots.bot);
   return `${t} or ${b}`;
@@ -722,7 +737,7 @@ function renderScenarios() {
   if (winNextId) {
     const wg = GAMES[winNextId];
     const sameDay = isSameDay(nextId, winNextId);
-    const oppLabel = opponentLabel(winNextId);
+    const oppLabel = opponentLabel(winNextId, nextId, 'winner');
     winHtml = `
       <div class="scenario win">
         <div class="scen-header">If we win</div>
@@ -745,7 +760,7 @@ function renderScenarios() {
   if (loseNextId) {
     const lg = GAMES[loseNextId];
     const sameDay = isSameDay(nextId, loseNextId);
-    const oppLabel = opponentLabel(loseNextId);
+    const oppLabel = opponentLabel(loseNextId, nextId, 'loser');
     loseHtml = `
       <div class="scenario lose${sameDay ? ' urgent' : ''}">
         <div class="scen-header">If we lose</div>
