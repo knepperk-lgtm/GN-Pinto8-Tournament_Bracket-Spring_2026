@@ -330,28 +330,6 @@ body {
   padding: 3px 8px; border-radius: 4px;
   text-transform: uppercase;
 }
-.update-notice-summary { font-size: 12px; line-height: 1.6; }
-.update-notice-summary div { margin-bottom: 4px; }
-.update-notice-summary strong { color: #713f12; }
-.update-notice details { margin-top: 10px; font-size: 11px; }
-.update-notice summary {
-  cursor: pointer; font-weight: 700; color: #854d0e;
-  padding: 4px 0; user-select: none;
-}
-.update-notice summary:hover { color: #ca8a04; }
-.history-list {
-  margin: 6px 0 0 16px; padding: 0;
-  list-style: disc; color: #713f12;
-}
-.history-list li {
-  margin-bottom: 4px; line-height: 1.4;
-}
-.history-list .current-tag {
-  background: #ca8a04; color: white;
-  font-size: 9px; font-weight: 700; padding: 1px 6px;
-  border-radius: 3px; margin-left: 6px;
-  letter-spacing: 1px; text-transform: uppercase;
-}
 </style>
 </head>
 <body>
@@ -369,21 +347,8 @@ body {
 <div class="update-notice">
   <div class="update-notice-header">
     <span class="update-notice-tag">Updated</span>
-    <span>May 27, 2026 · League schedule revision</span>
+    <span>Last updated: May 30, 2026</span>
   </div>
-  <div class="update-notice-summary">
-    <div><strong>Saturday May 30:</strong> Game times shifted. New slate: G3 8 AM, G6 10 AM, G4 12 PM, G7 2 PM, G8 4 PM, G9 6 PM (Field 5), G10 6 PM (Field 6).</div>
-    <div><strong>Thursday Jun 4:</strong> G14 moved from 8 AM to 6 PM.</div>
-    <div><strong>Friday May 29:</strong> G5 returns to Field 6.</div>
-  </div>
-  <details>
-    <summary>Version history</summary>
-    <ul class="history-list">
-      <li><strong>May 27, 2026</strong> (afternoon) — League schedule revision<span class="current-tag">Current</span></li>
-      <li><strong>May 27, 2026</strong> (morning) — Rain delay rescheduling: G1, G2, G5 shifted by one day</li>
-      <li><strong>May 23, 2026</strong> — Initial bracket published</li>
-    </ul>
-  </details>
 </div>
 
 <div class="team-picker">
@@ -675,18 +640,45 @@ function opponentLabel(gameId, fromGameId, fromOutcome) {
 
 function isSameDay(g1, g2) { return GAMES[g1].day === GAMES[g2].day; }
 
+function findLastGameForTeam(teamKey) {
+  for (let i = GAME_ORDER.length - 1; i >= 0; i--) {
+    const gid = GAME_ORDER[i];
+    if (!isOfficial(gid)) continue;
+    const g = GAMES[gid];
+    const top = resolveSlot(g.slots.top);
+    const bot = resolveSlot(g.slots.bot);
+    if (top === teamKey || bot === teamKey) return gid;
+  }
+  return null;
+}
+
 function renderCallout() {
   const team = TEAMS[trackedTeam];
-  const firstGame = findFirstGameForTeam(trackedTeam);
-  const fg = GAMES[firstGame];
-  const opp = opponentLabel(firstGame);
-  document.getElementById('teamCallout').innerHTML = `
-    <img src="${team.logo}" alt="${team.name}">
-    <div class="text">
-      <strong>${team.name} (Seed #${team.seed}) · Opening Game</strong>
-      ${fg.day} at ${fg.time} vs ${opp} on ${fg.field}.
-    </div>
-  `;
+  const lastGameId = findLastGameForTeam(trackedTeam);
+  if (lastGameId) {
+    const g = GAMES[lastGameId];
+    const won = OFFICIAL_RESULTS[lastGameId] === trackedTeam;
+    const opp = opponentLabel(lastGameId);
+    const resultLabel = won ? 'Won' : 'Lost';
+    document.getElementById('teamCallout').innerHTML = `
+      <img src="${team.logo}" alt="${team.name}">
+      <div class="text">
+        <strong>${team.name} (Seed #${team.seed}) · Last Game: ${resultLabel}</strong>
+        ${g.day} at ${g.time} vs ${opp} on ${g.field}.
+      </div>
+    `;
+  } else {
+    const firstGame = findFirstGameForTeam(trackedTeam);
+    const fg = GAMES[firstGame];
+    const opp = opponentLabel(firstGame);
+    document.getElementById('teamCallout').innerHTML = `
+      <img src="${team.logo}" alt="${team.name}">
+      <div class="text">
+        <strong>${team.name} (Seed #${team.seed}) · Opening Game</strong>
+        ${fg.day} at ${fg.time} vs ${opp} on ${fg.field}.
+      </div>
+    `;
+  }
   document.getElementById('currentTeamName').textContent = team.name;
 }
 
