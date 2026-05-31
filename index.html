@@ -87,6 +87,11 @@ body {
 .pick-name { font-weight: 700; font-size: 13px; line-height: 1.1; }
 .pick-seed { font-size: 10px; color: #6b7280; margin-top: 2px; }
 .team-pick.selected .pick-name { color: #991b1b; }
+.team-pick.eliminated { opacity: 0.45; background: #f3f4f6; }
+.team-pick.eliminated img { filter: grayscale(100%); }
+.team-pick.eliminated .pick-name { text-decoration: line-through; color: #6b7280; }
+.team-pick.eliminated .pick-seed::after { content: " · OUT"; color: #dc2626; font-weight: 700; }
+.team-pick.eliminated.selected { opacity: 0.7; }
 
 .team-callout {
   background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
@@ -796,8 +801,12 @@ function renderScenarios() {
 
 function renderTeamPicker() {
   document.querySelectorAll('.team-pick').forEach(btn => {
-    if (btn.dataset.team === trackedTeam) btn.classList.add('selected');
+    const teamKey = btn.dataset.team;
+    if (teamKey === trackedTeam) btn.classList.add('selected');
     else btn.classList.remove('selected');
+    const state = findTeamNextState(teamKey);
+    if (state && state.eliminated) btn.classList.add('eliminated');
+    else btn.classList.remove('eliminated');
   });
 }
 
